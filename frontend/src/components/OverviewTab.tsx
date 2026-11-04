@@ -2,7 +2,7 @@ import {
   AreaChart, Area, ResponsiveContainer, Tooltip,
   XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { api } from '../api';
+import { api, type DataScope } from '../api';
 import { useAsync } from './hooks';
 import { LoadingSpinner, ErrorBanner, Card, SectionTitle, ExplainerBox, NoData } from './ui';
 import { AlertCircle, ArrowUpRight, CheckCircle2, TrendingDown, Wind, Zap } from 'lucide-react';
@@ -85,10 +85,10 @@ function MetricCard({
   );
 }
 
-export default function OverviewTab() {
-  const metrics = useAsync(() => api.metrics(), []);
+export default function OverviewTab({ scope = 'jan2026' }: { scope?: DataScope }) {
+  const metrics = useAsync(() => api.metrics(scope), [scope]);
 
-  if (metrics.loading) return <LoadingSpinner message="Calculating National Grid metrics for Jan 2026…" />;
+  if (metrics.loading) return <LoadingSpinner message={`Calculating National Grid metrics for ${scope === 'live' ? 'Today (Real-time)' : 'Jan 2026'}…`} />;
   if (metrics.error)   return <ErrorBanner message={metrics.error} />;
   if (!metrics.data || metrics.data.n === 0) return <NoData />;
 

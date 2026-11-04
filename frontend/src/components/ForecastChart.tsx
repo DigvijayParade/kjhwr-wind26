@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   CartesianGrid, ResponsiveContainer, Legend,
 } from 'recharts';
-import { api } from '../api';
+import { api, type DataScope } from '../api';
 import { useAsync, shortDate } from './hooks';
 import { LoadingSpinner, ErrorBanner, Card, SectionTitle, ExplainerBox, NoData } from './ui';
 import { Zap, Calendar, TrendingUp, Info } from 'lucide-react';
@@ -11,9 +11,9 @@ import { Zap, Calendar, TrendingUp, Info } from 'lucide-react';
 const COLOR_ACTUAL   = '#10b981'; // Green for actual power
 const COLOR_FORECAST = '#38bdf8'; // Blue for forecast
 
-export default function ForecastChart() {
-  const actuals   = useAsync(() => api.actuals(), []);
-  const forecasts = useAsync(() => api.forecastLatest(), []);
+export default function ForecastChart({ scope = 'jan2026' }: { scope?: DataScope }) {
+  const actuals   = useAsync(() => api.actuals(scope), [scope]);
+  const forecasts = useAsync(() => api.forecastLatest(scope), [scope]);
   const [rangeFilter, setRangeFilter] = useState<'all' | 'w1' | 'w2' | 'w3' | 'w4'>('all');
 
   const loading = actuals.loading || forecasts.loading;

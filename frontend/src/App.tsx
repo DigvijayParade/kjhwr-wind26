@@ -4,6 +4,7 @@ import {
   Info, ShieldCheck, Zap, HelpCircle, ExternalLink, Sparkles
 } from 'lucide-react';
 import type { TabId } from './types';
+import type { DataScope } from './api';
 import OverviewTab from './components/OverviewTab';
 import ForecastChart from './components/ForecastChart';
 import ErrorMetrics from './components/ErrorMetrics';
@@ -18,6 +19,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; desc: string; bad
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [scope, setScope] = useState<DataScope>('jan2026');
   const [showPitchModal, setShowPitchModal] = useState(false);
   const activeTabInfo = TABS.find(t => t.id === activeTab)!;
 
@@ -272,24 +274,57 @@ export default function App() {
                 </span>
               </div>
               <p style={{ color: '#94a3b8', marginTop: 6, fontSize: 13, maxWidth: 640 }}>
-                {activeTabInfo.desc} · National Wind Generation for UK Day-Ahead Power Procurement (January 2026).
+                {activeTabInfo.desc} · {scope === 'live' ? '⚡ LIVE REAL-TIME National Grid Data Stream (Today)' : '📅 January 2026 Historical Benchmark (PM Assignment Scope)'}.
               </p>
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {/* Mode Toggle: Jan 2026 vs Live Today */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: 8,
-                padding: '8px 14px',
-                fontSize: 12,
-                color: '#cbd5e1',
                 display: 'flex',
-                alignItems: 'center',
-                gap: 8,
+                gap: 4,
+                background: 'rgba(15, 23, 42, 0.9)',
+                padding: '4px 6px',
+                borderRadius: 10,
+                border: '1px solid rgba(255, 255, 255, 0.12)',
               }}>
-                <span style={{ color: '#94a3b8' }}>Target:</span>
-                <strong style={{ color: '#38bdf8' }}>UK National Wind (GB)</strong>
+                <button
+                  onClick={() => setScope('jan2026')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 7,
+                    border: 'none',
+                    background: scope === 'jan2026' ? '#0284c7' : 'transparent',
+                    color: scope === 'jan2026' ? '#ffffff' : '#94a3b8',
+                    fontSize: 12,
+                    fontWeight: scope === 'jan2026' ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  📅 Jan 2026 (Challenge)
+                </button>
+                <button
+                  onClick={() => setScope('live')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 7,
+                    border: 'none',
+                    background: scope === 'live' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+                    color: scope === 'live' ? '#ffffff' : '#94a3b8',
+                    fontSize: 12,
+                    fontWeight: scope === 'live' ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span className="pulse-dot" />
+                  <span>🔴 Live Today (Real-time)</span>
+                </button>
               </div>
             </div>
           </div>
@@ -297,10 +332,10 @@ export default function App() {
 
         {/* Tab Body */}
         <div style={{ padding: '28px 36px 60px' }}>
-          {activeTab === 'overview'  && <OverviewTab />}
-          {activeTab === 'forecast'  && <ForecastChart />}
-          {activeTab === 'errors'    && <ErrorMetrics />}
-          {activeTab === 'decision'  && <DecisionSummary />}
+          {activeTab === 'overview'  && <OverviewTab scope={scope} />}
+          {activeTab === 'forecast'  && <ForecastChart scope={scope} />}
+          {activeTab === 'errors'    && <ErrorMetrics scope={scope} />}
+          {activeTab === 'decision'  && <DecisionSummary scope={scope} />}
         </div>
       </main>
 

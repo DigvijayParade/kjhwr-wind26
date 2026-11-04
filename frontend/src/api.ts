@@ -16,12 +16,14 @@ async function get<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export type DataScope = 'jan2026' | 'live';
+
 export const api = {
   health: () => get<{ status: string }>('/api/health'),
-  actuals: () => get<ActualRecord[]>('/api/actuals'),
-  forecastLatest: () => get<ForecastRecord[]>('/api/forecast/latest'),
-  metrics: () => get<MetricsResponse>('/api/metrics'),
-  vintages: () => get<VintageGroup[]>('/api/forecast/vintages'),
-  forecastByVintage: (publishBefore: string) =>
-    get<ForecastRecord[]>(`/api/forecast/by-vintage?publishBefore=${encodeURIComponent(publishBefore)}`),
+  actuals: (scope: DataScope = 'jan2026') => get<ActualRecord[]>(`/api/actuals?scope=${scope}`),
+  forecastLatest: (scope: DataScope = 'jan2026') => get<ForecastRecord[]>(`/api/forecast/latest?scope=${scope}`),
+  metrics: (scope: DataScope = 'jan2026') => get<MetricsResponse>(`/api/metrics?scope=${scope}`),
+  vintages: (scope: DataScope = 'jan2026') => get<VintageGroup[]>(`/api/forecast/vintages?scope=${scope}`),
+  forecastByVintage: (publishBefore: string, scope: DataScope = 'jan2026') =>
+    get<ForecastRecord[]>(`/api/forecast/by-vintage?publishBefore=${encodeURIComponent(publishBefore)}&scope=${scope}`),
 };

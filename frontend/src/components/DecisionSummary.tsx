@@ -3,16 +3,16 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   CartesianGrid, ResponsiveContainer, Legend,
 } from 'recharts';
-import { api } from '../api';
+import { api, type DataScope } from '../api';
 import { useAsync, shortDate } from './hooks';
 import { LoadingSpinner, ErrorBanner, Card, SectionTitle, KpiCard, ExplainerBox, NoData } from './ui';
 import type { ForecastRecord, VintageGroup } from '../types';
 import { calculateLocalMetrics } from './vintageMetrics';
 import { Calculator, ShieldCheck, Clock, Zap, ArrowRight, HelpCircle } from 'lucide-react';
 
-export default function DecisionSummary() {
-  const vintages = useAsync(() => api.vintages(), []);
-  const actuals  = useAsync(() => api.actuals(), []);
+export default function DecisionSummary({ scope = 'jan2026' }: { scope?: DataScope }) {
+  const vintages = useAsync(() => api.vintages(scope), [scope]);
+  const actuals  = useAsync(() => api.actuals(scope), [scope]);
 
   const [selectedVintage, setSelectedVintage] = useState('');
   const [vintageFcst, setVintageFcst]         = useState<ForecastRecord[] | null>(null);
@@ -27,14 +27,14 @@ export default function DecisionSummary() {
     setVintageLoading(true);
     setVintageError(null);
     try {
-      const data = await api.forecastByVintage(publishBefore);
+      const data = await api.forecastByVintage(publishBefore, scope);
       setVintageFcst(data);
     } catch (e) {
       setVintageError(String(e));
     } finally {
       setVintageLoading(false);
     }
-  }, []);
+  }, [scope]);
 
   const handleSelect = (v: string) => {
     setSelectedVintage(v);

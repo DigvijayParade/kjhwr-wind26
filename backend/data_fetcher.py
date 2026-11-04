@@ -1,11 +1,11 @@
 """
 data_fetcher.py - Elexon BMRS API fetching with disk-based caching.
+Supports both January 2026 (challenge scope) and real-time Live Grid data (today).
 """
 import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -14,15 +14,24 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Constants
+# Constants & URLs
 # ---------------------------------------------------------------------------
 DEFAULT_CACHE_DIR = Path(__file__).resolve().parent / "cache"
 CACHE_DIR = Path(os.getenv("CACHE_DIR", str(DEFAULT_CACHE_DIR)))
-CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", str(86400 * 7)))  # 7 days (January 2026 is historical)
 
 BASE_URL = "https://data.elexon.co.uk/bmrs/api/v1/datasets"
-FUELHH_URL  = f"{BASE_URL}/FUELHH/stream?settlementDateFrom=2026-01-01&settlementDateTo=2026-01-31"
-WINDFOR_URL = f"{BASE_URL}/WINDFOR/stream?publishDateTimeFrom=2025-12-31T00:00:00Z&publishDateTimeTo=2026-02-01T00:00:00Z"
+
+# January 2026 Scope (Historical Benchmark)
+JAN_FUELHH_URL  = f"{BASE_URL}/FUELHH/stream?settlementDateFrom=2026-01-01&settlementDateTo=2026-01-31"
+JAN_WINDFOR_URL = f"{BASE_URL}/WINDFOR/stream?publishDateTimeFrom=2025-12-31T00:00:00Z&publishDateTimeTo=2026-02-01T00:00:00Z"
+
+# Live Scope (Real-time Outturn & Forecasts for Today)
+LIVE_FUELHH_URL  = f"{BASE_URL}/FUELHH/stream"
+LIVE_WINDFOR_URL = f"{BASE_URL}/WINDFOR/stream"
+
+# Cache TTLs
+HISTORICAL_TTL = 86400 * 30  # 30 days for January 2026
+LIVE_TTL = 300               # 5 minutes for live streaming data
 
 # ---------------------------------------------------------------------------
 # Cache helpers
@@ -33,13 +42,13 @@ def _cache_path(key: str) -> Path:
     return CACHE_DIR / f"{key}.json"
 
 
-def _read_cache(key: str) -> list[dict] | None:
+def _read_cache(key: str, max_age: int) -> list[dict] | None:
     p = _cache_path(key)
     if not p.exists():
         return None
     age = time.time() - p.stat().st_mtime
-    if age > CACHE_TTL_SECONDS:
-        logger.info("Cache expired for %s (age=%.0fs)", key, age)
+    if age > max_age:
+        logger.info("Cache expired for %s (age=%.0fs, max=%.0fs)", key, age, max_age)
         return None
     try:
         with p.open(encoding="utf-8") as f:
@@ -60,7 +69,6 @@ def _write_cache(key: str, data: list[dict]) -> None:
 
 
 def _read_stale_cache(key: str) -> list[dict] | None:
-    """Return cached data regardless of age (used as fallback when API fails)."""
     p = _cache_path(key)
     if not p.exists():
         return None
@@ -76,7 +84,7 @@ def _read_stale_cache(key: str) -> list[dict] | None:
 # ---------------------------------------------------------------------------
 
 async def _fetch_json(url: str) -> list[dict]:
-    """Fetch JSON array from a URL with a generous timeout."""
+    """Fetch JSON array from Elexon BMRS endpoint."""
     async with httpx.AsyncClient(timeout=90.0) as client:
         logger.info("Fetching %s", url)
         response = await client.get(url)
@@ -95,29 +103,32 @@ async def _fetch_json(url: str) -> list[dict]:
 # Public API
 # ---------------------------------------------------------------------------
 
-async def fetch_actuals() -> list[dict[str, Any]]:
+async def fetch_actuals(scope: str = "jan2026") -> list[dict[str, Any]]:
     """
-    Fetch actual wind generation (FUELHH dataset) for January 2026.
-    Returns list of {startTime, generation} dicts.
-    Filters to fuelType == 'WIND' and January 2026 date window.
+    Fetch actual wind generation (FUELHH dataset).
+    scope="jan2026": All 31 days of January 2026.
+    scope="live": Real-time UK grid wind outturn for today.
     """
-    cache_key = "actuals_jan2026"
-    cached = _read_cache(cache_key)
+    is_live = (scope == "live")
+    cache_key = "actuals_live" if is_live else "actuals_jan2026"
+    ttl = LIVE_TTL if is_live else HISTORICAL_TTL
+
+    cached = _read_cache(cache_key, ttl)
     if cached is not None:
-        logger.info("Actuals served from cache (%d records)", len(cached))
+        logger.info("Actuals (%s) served from cache (%d records)", scope, len(cached))
         return cached
 
+    url = LIVE_FUELHH_URL if is_live else JAN_FUELHH_URL
     try:
-        raw = await _fetch_json(FUELHH_URL)
+        raw = await _fetch_json(url)
     except Exception as exc:
-        logger.error("Failed to fetch actuals: %s", exc)
+        logger.error("Failed to fetch actuals (%s): %s", scope, exc)
         stale = _read_stale_cache(cache_key)
         if stale is not None:
-            logger.warning("Returning stale actuals cache")
+            logger.warning("Returning stale actuals cache for %s", scope)
             return stale
         raise
 
-    # Normalise and filter
     result: list[dict[str, Any]] = []
     seen: set[str] = set()
     for rec in raw:
@@ -126,34 +137,45 @@ async def fetch_actuals() -> list[dict[str, Any]]:
             continue
         start = rec.get("startTime", rec.get("start_time", rec.get("settlementDate", "")))
         gen   = rec.get("generation", rec.get("quantity", 0))
-        if start and "2026-01-01" <= start[:10] <= "2026-01-31":
-            if start not in seen:
-                seen.add(start)
-                result.append({"startTime": start, "generation": float(gen or 0)})
+
+        if not start:
+            continue
+
+        if not is_live and not ("2026-01-01" <= start[:10] <= "2026-01-31"):
+            continue
+
+        if start not in seen:
+            seen.add(start)
+            result.append({"startTime": start, "generation": float(gen or 0)})
 
     result.sort(key=lambda x: x["startTime"])
     _write_cache(cache_key, result)
     return result
 
 
-async def fetch_forecasts() -> list[dict[str, Any]]:
+async def fetch_forecasts(scope: str = "jan2026") -> list[dict[str, Any]]:
     """
-    Fetch wind power forecasts (WINDFOR dataset) for January 2026.
-    Returns list of {startTime, publishTime, generation} dicts.
+    Fetch wind forecasts (WINDFOR dataset).
+    scope="jan2026": January 2026 forecasts.
+    scope="live": Real-time live forecasts for today/tomorrow.
     """
-    cache_key = "forecasts_jan2026"
-    cached = _read_cache(cache_key)
+    is_live = (scope == "live")
+    cache_key = "forecasts_live" if is_live else "forecasts_jan2026"
+    ttl = LIVE_TTL if is_live else HISTORICAL_TTL
+
+    cached = _read_cache(cache_key, ttl)
     if cached is not None:
-        logger.info("Forecasts served from cache (%d records)", len(cached))
+        logger.info("Forecasts (%s) served from cache (%d records)", scope, len(cached))
         return cached
 
+    url = LIVE_WINDFOR_URL if is_live else JAN_WINDFOR_URL
     try:
-        raw = await _fetch_json(WINDFOR_URL)
+        raw = await _fetch_json(url)
     except Exception as exc:
-        logger.error("Failed to fetch forecasts: %s", exc)
+        logger.error("Failed to fetch forecasts (%s): %s", scope, exc)
         stale = _read_stale_cache(cache_key)
         if stale is not None:
-            logger.warning("Returning stale forecasts cache")
+            logger.warning("Returning stale forecasts cache for %s", scope)
             return stale
         raise
 
@@ -162,38 +184,43 @@ async def fetch_forecasts() -> list[dict[str, Any]]:
         start   = rec.get("startTime", rec.get("start_time", ""))
         publish = rec.get("publishTime", rec.get("publish_time", rec.get("createdTime", "")))
         gen     = rec.get("generation", rec.get("quantity", rec.get("windForecast", 0)))
-        if start and "2026-01-01" <= start[:10] <= "2026-01-31":
-            result.append({
-                "startTime":   start,
-                "publishTime": publish or "",
-                "generation":  float(gen or 0),
-            })
+
+        if not start:
+            continue
+
+        if not is_live and not ("2026-01-01" <= start[:10] <= "2026-01-31"):
+            continue
+
+        result.append({
+            "startTime":   start,
+            "publishTime": publish or "",
+            "generation":  float(gen or 0),
+        })
 
     result.sort(key=lambda x: (x["startTime"], x["publishTime"]))
     _write_cache(cache_key, result)
     return result
 
 
-async def get_latest_forecasts() -> list[dict[str, Any]]:
+async def get_latest_forecasts(scope: str = "jan2026") -> list[dict[str, Any]]:
     """
     For each startTime, return the forecast with the latest publishTime.
     """
-    forecasts = await fetch_forecasts()
+    forecasts = await fetch_forecasts(scope)
     best: dict[str, dict] = {}
     for rec in forecasts:
         st = rec["startTime"]
         if st not in best or rec["publishTime"] > best[st]["publishTime"]:
             best[st] = rec
-    result = sorted(best.values(), key=lambda x: x["startTime"])
-    return result
+    return sorted(best.values(), key=lambda x: x["startTime"])
 
 
-async def get_forecast_by_vintage(publish_before: str) -> list[dict[str, Any]]:
+async def get_forecast_by_vintage(publish_before: str, scope: str = "jan2026") -> list[dict[str, Any]]:
     """
     Return the most recent forecast for each startTime that was published
-    strictly before `publish_before` (ISO datetime string).
+    strictly before `publish_before`.
     """
-    forecasts = await fetch_forecasts()
+    forecasts = await fetch_forecasts(scope)
     best: dict[str, dict] = {}
     for rec in forecasts:
         if rec["publishTime"] and rec["publishTime"] <= publish_before:
@@ -203,11 +230,11 @@ async def get_forecast_by_vintage(publish_before: str) -> list[dict[str, Any]]:
     return sorted(best.values(), key=lambda x: x["startTime"])
 
 
-async def get_forecast_vintages() -> list[dict[str, Any]]:
+async def get_forecast_vintages(scope: str = "jan2026") -> list[dict[str, Any]]:
     """
     Return available publish times grouped by target date.
     """
-    forecasts = await fetch_forecasts()
+    forecasts = await fetch_forecasts(scope)
     grouped: dict[str, set] = {}
     for rec in forecasts:
         st = rec["startTime"]

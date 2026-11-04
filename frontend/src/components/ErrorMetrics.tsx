@@ -4,13 +4,13 @@ import {
   CartesianGrid, ResponsiveContainer, Legend,
   LineChart, Line, ReferenceLine,
 } from 'recharts';
-import { api } from '../api';
+import { api, type DataScope } from '../api';
 import { useAsync } from './hooks';
 import { LoadingSpinner, ErrorBanner, Card, SectionTitle, KpiCard, ExplainerBox, NoData } from './ui';
 import { TrendingUp, AlertTriangle, CheckCircle, BarChart3, HelpCircle } from 'lucide-react';
 
-export default function ErrorMetrics() {
-  const { data, loading, error } = useAsync(() => api.metrics(), []);
+export default function ErrorMetrics({ scope = 'jan2026' }: { scope?: DataScope }) {
+  const { data, loading, error } = useAsync(() => api.metrics(scope), [scope]);
   const [searchTerm, setSearchTerm] = useState('');
 
   const errorStats = useMemo(() => {
