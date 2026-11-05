@@ -11,8 +11,8 @@ A full-stack software application tailored for a **UK Energy Utility's Day-Ahead
 | Component | Target Platform | Link / Status |
 |-----------|-----------------|---------------|
 | **Frontend Web App** | Vercel | `[Deploy on Vercel or open http://localhost:5173 locally]` |
-| **Backend REST API** | Render / Heroku | `[Deploy on Render / Heroku or open http://localhost:8000/docs locally]` |
-| **API Documentation** | OpenAPI / Swagger | http://localhost:8000/docs |
+| **Backend REST API** | Render | https://kjhwr-wind26.onrender.com |
+| **API Documentation** | OpenAPI / Swagger | https://kjhwr-wind26.onrender.com/docs |
 
 ---
 
