@@ -167,7 +167,7 @@ export function SectionTitle({
 }
 
 /**
- * ExplainerBox: specifically designed for evaluators/judges/non-experts!
+ * ExplainerBox: designed to provide intuitive, plain-language guidance.
  * Breaks down any chart or metric in plain terms.
  */
 export function ExplainerBox({

@@ -174,7 +174,7 @@ export default function OverviewTab({ scope = 'jan2026' }: { scope?: DataScope }
       <div>
         <SectionTitle
           subtitle="Quantifying error over all 744 hourly settlement periods in January 2026."
-          badge="Core Requirement"
+          badge="Statistical Benchmarks"
         >
           Quantified Forecast Accuracy Metrics
         </SectionTitle>

@@ -20,7 +20,6 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; desc: string; bad
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [scope, setScope] = useState<DataScope>('jan2026');
-  const [showPitchModal, setShowPitchModal] = useState(false);
   const activeTabInfo = TABS.find(t => t.id === activeTab)!;
 
   return (
@@ -167,30 +166,6 @@ export default function App() {
           })}
         </nav>
 
-        {/* Judge / Evaluator Pitch Button */}
-        <div style={{ padding: '0 14px 14px' }}>
-          <button
-            onClick={() => setShowPitchModal(true)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: '10px 14px',
-              borderRadius: 8,
-              background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(16, 185, 129, 0.2))',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            <Sparkles size={14} color="#38bdf8" />
-            Judges Guide: What is this?
-          </button>
-        </div>
-
         {/* UK Utility Context Box */}
         <div style={{
           margin: '0 14px 16px',
@@ -204,9 +179,9 @@ export default function App() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#38bdf8', fontWeight: 600, marginBottom: 4 }}>
             <Zap size={13} />
-            The UK Energy Problem
+            Market Balancing Mechanism
           </div>
-          Every day at 12:00, utilities buy power for tomorrow. Wind generation replaces expensive thermal fuel, but unexpected wind dips require buying emergency balancing power at premium prices.
+          UK day-ahead auctions close at 12:00 UTC. Procurement desks buy thermal power to cover consumer demand minus forecast wind generation to prevent high cashout penalties.
         </div>
 
         {/* Footer */}
@@ -274,7 +249,7 @@ export default function App() {
                 </span>
               </div>
               <p style={{ color: '#94a3b8', marginTop: 6, fontSize: 13, maxWidth: 640 }}>
-                {activeTabInfo.desc} · {scope === 'live' ? '⚡ LIVE REAL-TIME National Grid Data Stream (Today)' : '📅 January 2026 Historical Benchmark (PM Assignment Scope)'}.
+                {activeTabInfo.desc} · National Grid Wind Generation & Day-Ahead Settlement Analytics.
               </p>
             </div>
 
@@ -304,7 +279,7 @@ export default function App() {
                     gap: 6,
                   }}
                 >
-                  📅 Jan 2026 (Challenge)
+                  📅 January 2026
                 </button>
                 <button
                   onClick={() => setScope('live')}
@@ -323,7 +298,7 @@ export default function App() {
                   }}
                 >
                   <span className="pulse-dot" />
-                  <span>🔴 Live Today (Real-time)</span>
+                  <span>⚡ Live Outturn (Today)</span>
                 </button>
               </div>
             </div>
@@ -338,98 +313,6 @@ export default function App() {
           {activeTab === 'decision'  && <DecisionSummary scope={scope} />}
         </div>
       </main>
-
-      {/* ── Judges & Evaluator Guide Modal ── */}
-      {showPitchModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100,
-          padding: 20,
-        }}>
-          <div style={{
-            background: '#0f1f35',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            borderRadius: 16,
-            maxWidth: 680,
-            width: '100%',
-            padding: '30px 34px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6)',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Wind size={24} color="#38bdf8" />
-                <h3 style={{ fontSize: 20, fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-                  Judge & Reviewer Executive Summary
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowPitchModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: 22,
-                  cursor: 'pointer',
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ fontSize: 13, color: '#cbd5e1', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ background: 'rgba(14, 165, 233, 0.1)', padding: '14px 18px', borderRadius: 10, borderLeft: '4px solid #0ea5e9' }}>
-                <strong style={{ color: '#38bdf8', fontSize: 14 }}>🎯 What is this challenge about?</strong>
-                <p style={{ marginTop: 4, margin: '4px 0 0' }}>
-                  A UK power utility needs to purchase electricity one day in advance. Wind energy is clean and free, but weather varies. To avoid blackouts or buying expensive emergency power, traders need to know:
-                  <strong> "How accurate are our wind forecasts, and what buffer must we buy from thermal plants?"</strong>
-                </p>
-              </div>
-
-              <div>
-                <strong style={{ color: '#f8fafc', fontSize: 14 }}>🚀 What this application delivers:</strong>
-                <ul style={{ paddingLeft: 20, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <li><strong>Live UK Grid Data:</strong> Pulls from Elexon BMRS (<code style={{ color: '#38bdf8' }}>FUELHH</code> for actuals and <code style={{ color: '#38bdf8' }}>WINDFOR</code> for forecasts).</li>
-                  <li><strong>Quantified Forecast Error:</strong> Calculates Mean Absolute Error (MAE), RMSE, and MAPE across 744 hourly settlement intervals in January 2026.</li>
-                  <li><strong>Decision Support Vintage Tool:</strong> Simulates the exact forecast that was on the trader's desk before market gate closure.</li>
-                  <li><strong>Designed for Everyone:</strong> Every chart has interactive "How to read this" plain-language explanations so anyone can understand the business impact.</li>
-                </ul>
-              </div>
-
-              <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '12px 16px', borderRadius: 10, border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                <div style={{ fontWeight: 600, color: '#34d399', marginBottom: 2 }}>💡 Key Business Takeaway:</div>
-                <div style={{ color: '#a7f3d0' }}>
-                  In January 2026, the average forecast miss was ~1,764 MW (15.9% MAPE). The trading desk should procure a ~1,700–2,000 MW safety buffer from thermal plants on volatile days to guarantee UK energy security without wasting money.
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowPitchModal(false)}
-                style={{
-                  background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '12px',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  marginTop: 6,
-                  cursor: 'pointer',
-                }}
-              >
-                Got it, take me to the Dashboard!
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Turbine Blade Spin Animations */}
       <style>{`
