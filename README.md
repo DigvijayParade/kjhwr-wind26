@@ -1,5 +1,17 @@
 # 🌬️ AeroCast UK — Wind Power Day-Ahead Forecasting & Procurement Desk
 
+<div align="center">
+
+[![LIVE DEMO](https://img.shields.io/badge/🚀_LIVE_DEMO-CLICK_HERE-brightgreen?style=for-the-badge)](https://kjhwr-wind26.vercel.app)
+
+### [➡️ Check Live Demo](https://kjhwr-wind26.vercel.app)
+
+*Deployed on Vercel & Render | Powered by National Grid Elexon BMRS Live Data*
+
+</div>
+
+---
+
 A full-stack software application tailored for a **UK Energy Utility's Day-Ahead Trading Desk**. It empowers energy procurement managers to monitor latest renewable wind power generation forecasts, quantify historical prediction errors (MAE, RMSE, MAPE), and accurately calculate how much thermal power to buy to balance Great Britain's electricity grid.
 
 > **Note on AI Tools:** Developed with AI assistance using **Antigravity (Claude Sonnet 4.6 & Gemini 3.8 Flash)**.
@@ -10,9 +22,9 @@ A full-stack software application tailored for a **UK Energy Utility's Day-Ahead
 
 | Component | Target Platform | Link / Status |
 |-----------|-----------------|---------------|
-| **Frontend Web App** | Vercel | https://kjhwr-wind26.vercel.app |
-| **Backend REST API** | Render | https://kjhwr-wind26.onrender.com |
-| **API Documentation** | OpenAPI / Swagger | https://kjhwr-wind26.onrender.com/docs |
+| **Frontend Web App** | Vercel | [https://kjhwr-wind26.vercel.app](https://kjhwr-wind26.vercel.app) |
+| **Backend REST API** | Render | [https://kjhwr-wind26.onrender.com](https://kjhwr-wind26.onrender.com) |
+| **API Documentation** | OpenAPI / Swagger | [https://kjhwr-wind26.onrender.com/docs](https://kjhwr-wind26.onrender.com/docs) |
 
 ---
 
